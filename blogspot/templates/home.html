@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BlogSpot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-purple-100 via-blue-50 to-purple-200 min-h-screen">
+    <header class="bg-white/80 shadow py-4">
+      <div class="container mx-auto flex items-center justify-between px-4">
+        <h1 class="font-bold text-2xl text-violet-800">BlogSpot</h1>
+        <nav class="space-x-4">
+          <a href="{% url 'blog_list' %}" class="text-violet-800 font-medium">Blogs</a>
+          <a id="auth-link" href="{% url 'user_login' %}" class="text-violet-800 font-medium">Login</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container mx-auto px-4 py-16 text-center">
+      <section class="max-w-3xl mx-auto">
+        <h2 class="text-4xl font-bold mb-6 text-violet-700">Welcome to BlogSpot</h2>
+        <p class="text-xl text-gray-600 mb-10">Discover, read, and share amazing stories from passionate writers around the world.</p>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-white/90 rounded-xl p-6 shadow-md hover:shadow-xl transition">
+            <h3 class="text-xl font-semibold text-violet-700 mb-4">Read</h3>
+            <p class="text-gray-600">Explore a wide range of topics and perspectives from our diverse community of writers.</p>
+          </div>
+          <div class="bg-white/90 rounded-xl p-6 shadow-md hover:shadow-xl transition">
+            <h3 class="text-xl font-semibold text-violet-700 mb-4">Interact</h3>
+            <p class="text-gray-600">Comment, like, and engage with content that inspires and challenges you.</p>
+          </div>
+          <div class="bg-white/90 rounded-xl p-6 shadow-md hover:shadow-xl transition">
+            <h3 class="text-xl font-semibold text-violet-700 mb-4">Discover</h3>
+            <p class="text-gray-600">Find new ideas, insights, and stories that expand your horizons.</p>
+          </div>
+        </div>
+        <div class="mt-12">
+          <a id="start-reading" href="{% url 'user_login' %}" class="inline-block bg-violet-700 text-white px-8 py-3 rounded-lg hover:bg-violet-800 transition">
+            Start Reading
+          </a>
+        </div>
+      </section>
+    </main>
+    <footer class="bg-white/80 py-6 mt-12">
+      <div class="container mx-auto text-center text-gray-600">
+        <p>© 2025 BlogSpot. All rights reserved.</p>
+      </div>
+    </footer>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const authLink = document.getElementById('auth-link');
+        const startReadingLink = document.getElementById('start-reading');
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (accessToken && refreshToken) {
+          authLink.textContent = 'Logout';
+          authLink.href = '#';
+          authLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            logout().then(success => {
+              console.log('Logout status:', success);
+            });
+          });
+          startReadingLink.href = "{% url 'blog_list' %}"; // Redirect to blog list if logged in
+        } else {
+          authLink.textContent = 'Login';
+          authLink.href = "{% url 'user_login' %}";
+          startReadingLink.href = "{% url 'user_login' %}";
+        }
+      });
+    </script>
+  </body>
+</html>

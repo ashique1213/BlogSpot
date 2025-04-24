@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BlogSpot CMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-purple-100 via-blue-50 to-purple-200 min-h-screen">
+    <header class="bg-white/80 shadow py-4">
+      <div class="container mx-auto flex items-center justify-between px-4">
+        <h1 class="font-bold text-2xl text-violet-800">BlogSpot</h1>
+        <nav class="space-x-4">
+          <a href="{% url 'home' %}" class="text-violet-800 font-medium">Home</a>
+          <a id="auth-link" href="{% url 'user_login' %}" class="text-violet-800 font-medium">Login</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container mx-auto px-4 py-10">
+      <h2 class="text-3xl font-bold text-center mb-10 text-violet-700">Latest Posts</h2>
+      <div id="post-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Posts will be populated dynamically -->
+      </div>
+    </main>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+      async function fetchPosts() {
+        try {
+          const res = await fetch('/api/blogs/');
+          if (res.ok) {
+            const posts = await res.json();
+            const postList = document.getElementById('post-list');
+            postList.innerHTML = '';
+            posts.forEach(post => {
+              console.log('Post:', post.id, 'cover_image:', post.cover_image); // Debug
+              const imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
+              postList.innerHTML += `
+                <a href="/blogs/${post.id}/" class="block bg-white/90 rounded-xl shadow-md hover:shadow-xl transition overflow-hidden">
+                  <img src="${imageUrl}" alt="Post Cover" class="w-full h-40 object-cover" onerror="this.src='https://via.placeholder.com/800x400'; console.error('Failed to load image:', '${imageUrl}')" />
+                  <div class="p-5">
+                    <h3 class="font-bold text-lg text-violet-700 mb-2">${post.title}</h3>
+                    <div class="text-gray-500 text-sm mb-4">by ${post.author.username} • ${new Date(post.publish_date).toLocaleDateString()}</div>
+                    <p class="text-gray-600 mb-4">${post.content.substring(0, 100)}...</p>
+                    <div class="flex justify-between items-center">
+                      <span class="flex items-center text-gray-500 text-xs space-x-2">
+                        <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12h.01M12 12h.01M9 12h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" /></svg> <span>${post.reads}</span>
+                      </span>
+                      <span class="flex items-center text-gray-500 text-xs space-x-2">
+                        <svg class="h-4 w-4 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg> <span>${post.likes}</span>
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              `;
+            });
+          } else {
+            console.error('Error fetching posts: HTTP', res.status);
+            document.getElementById('post-list').innerHTML = '<p class="text-red-500">Failed to load posts</p>';
+          }
+        } catch (error) {
+          console.error('Fetch error:', error.message);
+          document.getElementById('post-list').innerHTML = '<p class="text-red-500">Error loading posts: ' + error.message + '</p>';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        fetchPosts();
+        const authLink = document.getElementById('auth-link');
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (accessToken && refreshToken) {
+          authLink.textContent = 'Logout';
+          authLink.href = '#';
+          authLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            logout().then(success => {
+              console.log('Logout status:', success);
+              window.location.reload();
+            });
+          });
+        } else {
+          authLink.textContent = 'Login';
+          authLink.href = "{% url 'user_login' %}";
+        }
+      });
+    </script>
+  </body>
+</html>

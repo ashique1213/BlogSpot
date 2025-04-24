@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Dashboard | BlogSpot CMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex">
+    <aside class="w-64 min-h-screen bg-gradient-to-br from-violet-800 to-violet-600 text-white p-6 flex flex-col">
+      <h2 class="font-bold text-2xl mb-8">BlogSpot CMS</h2>
+      <nav class="flex-1 space-y-4">
+        <a href="{% url 'admin_dashboard' %}" class="block py-2 px-4 rounded-lg bg-white/10">Dashboard</a>
+        <a href="{% url 'admin_posts' %}" class="block py-2 px-4 rounded-lg hover:bg-white/20">Posts</a>
+        <a href="{% url 'admin_users' %}" class="block py-2 px-4 rounded-lg hover:bg-white/20">Users</a>
+        <a href="{% url 'admin_comments' %}" class="block py-2 px-4 rounded-lg hover:bg-white/20">Comments</a>
+      </nav>
+      <div class="mt-10">
+        <button onclick="logout().then(success => console.log('Logout status:', success))" class="w-full py-2 bg-white/30 rounded-lg hover:bg-white/50 text-sm font-semibold">Logout</button>
+      </div>
+    </aside>
+    <main class="flex-1 p-8">
+      <h1 class="text-3xl font-bold text-violet-700 mb-6">Dashboard</h1>
+      <div id="dashboard-content" class="grid md:grid-cols-3 gap-6">
+        <div class="bg-white/80 rounded-xl shadow p-6 text-center">
+          <div class="text-2xl font-bold text-gray-700 mb-2" id="total-posts">0</div>
+          <div class="text-gray-500">Total Posts</div>
+        </div>
+        <div class="bg-white/80 rounded-xl shadow p-6 text-center">
+          <div class="text-2xl font-bold text-gray-700 mb-2" id="total-users">0</div>
+          <div class="text-gray-500">Users</div>
+        </div>
+        <div class="bg-white/80 rounded-xl shadow p-6 text-center">
+          <div class="text-2xl font-bold text-gray-700 mb-2" id="total-comments">0</div>
+          <div class="text-gray-500">Comments</div>
+        </div>
+      </div>
+    </main>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+      async function loadDashboardData() {
+        let token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = '/admin-login/';
+          return;
+        }
+
+        try {
+          let res = await fetch('/api/admin/dashboard-data/', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (res.status === 401) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              window.location.href = '/admin-login/';
+              return;
+            }
+            token = localStorage.getItem('access_token');
+            res = await fetch('/api/admin/dashboard-data/', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            document.getElementById('total-posts').textContent = data.total_posts;
+            document.getElementById('total-users').textContent = data.total_users;
+            document.getElementById('total-comments').textContent = data.total_comments;
+          } else {
+            console.error('Error loading dashboard:', res.status);
+            window.location.href = '/admin-login/';
+          }
+        } catch (error) {
+          console.error('Fetch error:', error);
+          window.location.href = '/admin-login/';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', loadDashboardData);
+    </script>
+  </body>
+</html>

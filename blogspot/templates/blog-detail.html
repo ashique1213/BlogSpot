@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Blog Detail | BlogSpot CMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-purple-100 via-blue-50 to-purple-200 min-h-screen">
+    <header class="bg-white/80 shadow py-4">
+      <div class="container mx-auto flex items-center justify-between px-4">
+        <h1 class="font-bold text-2xl text-violet-800">BlogSpot</h1>
+        <nav class="space-x-4">
+          <a href="{% url 'blog_list' %}" class="text-violet-800 font-medium">Home</a>
+          <a id="auth-link" href="{% url 'user_login' %}" class="text-violet-800 font-medium">Login</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container mx-auto px-4 py-10 max-w-3xl">
+      <article id="post-content" class="bg-white/90 rounded-xl shadow-xl p-8 mb-10">
+        <!-- Post content will be populated dynamically -->
+      </article>
+      <section class="bg-white/80 rounded-xl shadow p-6">
+        <h3 class="font-bold text-lg mb-4 text-violet-700">Comments</h3>
+        <form id="comment-form" class="mb-6 flex flex-col space-y-3">
+          <textarea id="comment-content" class="w-full px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-200" rows="3" placeholder="Add your comment..."></textarea>
+          <button type="submit" class="self-end px-6 py-2 bg-violet-700 text-white rounded-lg hover:bg-violet-800 font-semibold">Submit</button>
+        </form>
+        <div id="comment-list" class="space-y-4">
+          <!-- Comments will be populated dynamically -->
+        </div>
+      </section>
+    </main>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+      async function fetchPost() {
+        const pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
+        const postId = pathParts.pop();
+        if (!postId || isNaN(postId) || postId <= 0) {
+          console.error('Invalid post ID:', postId);
+          document.getElementById('post-content').innerHTML = '<p class="text-red-500">Invalid post ID</p>';
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/blogs/${postId}/`);
+          if (res.ok) {
+            const post = await res.json();
+            console.log('Post:', post.id, 'cover_image:', post.cover_image);
+            let imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
+            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('image/upload/')) {
+              imageUrl = `https://res.cloudinary.com/your_cloud_name/${imageUrl}`;
+            }
+            const postContent = document.getElementById('post-content');
+            postContent.innerHTML = `
+              <img src="${imageUrl}" alt="Post Cover" class="w-full h-56 object-cover rounded-lg mb-6" onerror="this.src='https://via.placeholder.com/800x400'; console.error('Failed to load image:', '${imageUrl}')" />
+              <h2 class="text-3xl font-bold text-violet-800 mb-3">${post.title}</h2>
+              <div class="flex items-center text-gray-500 text-sm mb-5 space-x-3">
+                <span>by ${post.author.username}</span>
+                <span>•</span>
+                <span>${new Date(post.publish_date).toLocaleDateString()}</span>
+                <span>•</span>
+                <span class="flex items-center">
+                  <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12h.01M12 12h.01M9 12h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" /></svg> <span class="ml-1">${post.reads} reads</span>
+                </span>
+                <span class="flex items-center ml-3">
+                  <svg class="h-4 w-4 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg> <span class="ml-1">${post.likes} likes</span>
+                </span>
+              </div>
+              <div class="prose max-w-none prose-violet text-gray-700">
+                <p>${post.content}</p>
+              </div>
+              <div class="mt-8 flex space-x-4">
+                <button onclick="likePost(${post.id})" class="flex items-center px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition space-x-2">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg>
+                  <span>Like</span>
+                </button>
+              </div>
+            `;
+
+            const commentList = document.getElementById('comment-list');
+            commentList.innerHTML = '';
+            post.comments.filter(c => c.status === 'approved').forEach(comment => {
+              commentList.innerHTML += `
+                <div class="bg-violet-50 rounded-lg p-4">
+                  <div class="font-semibold text-gray-800 mb-1">${comment.user.username} <span class="text-xs text-gray-400">• ${new Date(comment.created_at).toRelativeTime()}</span></div>
+                  <div class="text-gray-700">${comment.content}</div>
+                </div>
+              `;
+            });
+          } else {
+            console.error(`Error fetching post: HTTP ${res.status}`);
+            const errorData = await res.json().catch(() => ({}));
+            const message = res.status === 404 ? 'Post not found' : (errorData.error || 'Failed to load post');
+            document.getElementById('post-content').innerHTML = `<p class="text-red-500">${message}</p>`;
+          }
+        } catch (error) {
+          console.error('Fetch error:', error.message);
+          document.getElementById('post-content').innerHTML = '<p class="text-red-500">Error loading post: ' + error.message + '</p>';
+        }
+      }
+
+      async function likePost(id) {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          alert('Please log in to like this post');
+          window.location.href = '/login/';
+          return;
+        }
+
+        try {
+          let res = await fetch(`/api/blogs/${id}/like/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (res.status === 401) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              window.location.href = '/login/';
+              return;
+            }
+            const newToken = localStorage.getItem('access_token');
+            res = await fetch(`/api/blogs/${id}/like/`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${newToken}`
+              }
+            });
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            alert('Post liked!');
+            fetchPost();
+          } else {
+            const errorData = await res.json();
+            alert('Error: ' + (errorData.error || 'Failed to like post'));
+          }
+        } catch (error) {
+          console.error('Like post error:', error);
+          alert('Error: ' + error.message);
+        }
+      }
+
+      async function submitComment(event) {
+        event.preventDefault();
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          alert('Please log in to comment');
+          window.location.href = '/login/';
+          return;
+        }
+
+        const content = document.getElementById('comment-content').value.trim();
+        if (!content) {
+          alert('Comment cannot be empty');
+          return;
+        }
+
+        const postId = window.location.pathname.replace(/\/+$/, '').split('/').pop();
+        const data = {
+          post: postId,
+          content
+        };
+
+        try {
+          let res = await fetch('/api/comments/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (res.status === 401) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              window.location.href = '/login/';
+              return;
+            }
+            const newToken = localStorage.getItem('access_token');
+            res = await fetch('/api/comments/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${newToken}`
+              },
+              body: JSON.stringify(data)
+            });
+          }
+
+          if (res.ok) {
+            alert('Comment submitted! It will appear after admin approval.');
+            document.getElementById('comment-form').reset();
+            fetchPost();
+          } else {
+            const errorData = await res.json();
+            alert('Error: ' + (errorData.error || 'Failed to submit comment'));
+          }
+        } catch (error) {
+          console.error('Submit comment error:', error);
+          alert('Error: ' + error.message);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        fetchPost();
+        const authLink = document.getElementById('auth-link');
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (accessToken && refreshToken) {
+          authLink.textContent = 'Logout';
+          authLink.href = '#';
+          authLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            logout().then(success => {
+              console.log('Logout status:', success);
+              window.location.reload();
+            });
+          });
+        } else {
+          authLink.textContent = 'Login';
+          authLink.href = "{% url 'user_login' %}";
+        }
+
+        document.getElementById('comment-form').addEventListener('submit', submitComment);
+      });
+
+      Date.prototype.toRelativeTime = function() {
+        const now = new Date();
+        const diff = now - this;
+        const seconds = Math.floor(diff / 1000);
+        if (seconds < 60) return `${seconds} seconds ago`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+        const days = Math.floor(hours / 24);
+        return `${days} day${days !== 1 ? 's' : ''} ago`;
+      };
+    </script>
+  </body>
+</html>
