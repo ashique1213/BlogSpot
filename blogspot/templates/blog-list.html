@@ -24,7 +24,30 @@
       </div>
     </main>
     <script src="{% static 'js/auth.js' %}"></script>
+
     <script>
+      function updateAuthLink() {
+        const authLink = document.getElementById('auth-link');
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (accessToken && refreshToken) {
+          authLink.textContent = 'Logout';
+          authLink.href = '#';
+          authLink.onclick = (event) => {
+            event.preventDefault();
+            logout().then(success => {
+              console.log('Logout status:', success);
+              updateAuthLink();
+            });
+          };
+        } else {
+          authLink.textContent = 'Login';
+          authLink.href = "{% url 'user_login' %}";
+          authLink.onclick = null;
+        }
+      }
+
       async function fetchPosts() {
         try {
           const res = await fetch('/api/blogs/');
@@ -33,7 +56,7 @@
             const postList = document.getElementById('post-list');
             postList.innerHTML = '';
             posts.forEach(post => {
-              console.log('Post:', post.id, 'cover_image:', post.cover_image); // Debug
+              console.log('Post:', post.id, 'cover_image:', post.cover_image);
               const imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
               postList.innerHTML += `
                 <a href="/blogs/${post.id}/" class="block bg-white/90 rounded-xl shadow-md hover:shadow-xl transition overflow-hidden">
@@ -65,26 +88,15 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {
+        updateAuthLink();
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'logout-event') {
+            updateAuthLink();
+          }
+        });
         fetchPosts();
-        const authLink = document.getElementById('auth-link');
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
-
-        if (accessToken && refreshToken) {
-          authLink.textContent = 'Logout';
-          authLink.href = '#';
-          authLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            logout().then(success => {
-              console.log('Logout status:', success);
-              window.location.reload();
-            });
-          });
-        } else {
-          authLink.textContent = 'Login';
-          authLink.href = "{% url 'user_login' %}";
-        }
       });
     </script>
+    
   </body>
 </html>

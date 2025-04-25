@@ -34,6 +34,28 @@
     </main>
     <script src="{% static 'js/auth.js' %}"></script>
     <script>
+      function updateAuthLink() {
+        const authLink = document.getElementById('auth-link');
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (accessToken && refreshToken) {
+          authLink.textContent = 'Logout';
+          authLink.href = '#';
+          authLink.onclick = (event) => {
+            event.preventDefault();
+            logout().then(success => {
+              console.log('Logout status:', success);
+              updateAuthLink();
+            });
+          };
+        } else {
+          authLink.textContent = 'Login';
+          authLink.href = "{% url 'user_login' %}";
+          authLink.onclick = null;
+        }
+      }
+
       async function fetchPost() {
         const pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
         const postId = pathParts.pop();
@@ -117,9 +139,16 @@
             }
           });
 
+          if (res.status === 403) {
+            const errorData = await res.json();
+            alert(errorData.error || 'Failed to like/unlike post');
+            return;
+          }
+
           if (res.status === 401) {
             const refreshed = await refreshToken();
             if (!refreshed) {
+              alert('Session expired. Please log in again.');
               window.location.href = '/login/';
               return;
             }
@@ -138,7 +167,7 @@
             fetchPost();
           } else {
             const errorData = await res.json();
-            alert('Error: ' + (errorData.error || 'Failed to like/unlike post'));
+            alert(errorData.error || 'Failed to like/unlike post');
           }
         } catch (error) {
           console.error('Like post error:', error);
@@ -177,9 +206,16 @@
             body: JSON.stringify(data)
           });
 
+          if (res.status === 403) {
+            const errorData = await res.json();
+            alert(errorData.error || 'Failed to submit comment');
+            return;
+          }
+
           if (res.status === 401) {
             const refreshed = await refreshToken();
             if (!refreshed) {
+              alert('Session expired. Please log in again.');
               window.location.href = '/login/';
               return;
             }
@@ -200,7 +236,7 @@
             fetchPost();
           } else {
             const errorData = await res.json();
-            alert('Error: ' + (errorData.error || 'Failed to submit comment'));
+            alert(errorData.error || 'Failed to submit comment');
           }
         } catch (error) {
           console.error('Submit comment error:', error);
@@ -209,27 +245,14 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {
-        fetchPost();
-        const authLink = document.getElementById('auth-link');
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
-
-        if (accessToken && refreshToken) {
-          authLink.textContent = 'Logout';
-          authLink.href = '#';
-          authLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            logout().then(success => {
-              console.log('Logout status:', success);
-              window.location.reload();
-            });
-          });
-        } else {
-          authLink.textContent = 'Login';
-          authLink.href = "{% url 'user_login' %}";
-        }
-
+        updateAuthLink();
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'logout-event') {
+            updateAuthLink();
+          }
+        });
         document.getElementById('comment-form').addEventListener('submit', submitComment);
+        fetchPost();
       });
 
       Date.prototype.toRelativeTime = function() {

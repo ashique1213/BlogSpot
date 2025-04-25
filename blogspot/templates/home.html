@@ -48,8 +48,9 @@
       </div>
     </footer>
     <script src="{% static 'js/auth.js' %}"></script>
+    
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
+      function updateAuthLink() {
         const authLink = document.getElementById('auth-link');
         const startReadingLink = document.getElementById('start-reading');
         const accessToken = localStorage.getItem('access_token');
@@ -58,18 +59,29 @@
         if (accessToken && refreshToken) {
           authLink.textContent = 'Logout';
           authLink.href = '#';
-          authLink.addEventListener('click', (event) => {
+          authLink.onclick = (event) => {
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
+              updateAuthLink();
             });
-          });
-          startReadingLink.href = "{% url 'blog_list' %}"; // Redirect to blog list if logged in
+          };
+          startReadingLink.href = "{% url 'blog_list' %}";
         } else {
           authLink.textContent = 'Login';
           authLink.href = "{% url 'user_login' %}";
+          authLink.onclick = null;
           startReadingLink.href = "{% url 'user_login' %}";
         }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        updateAuthLink();
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'logout-event') {
+            updateAuthLink();
+          }
+        });
       });
     </script>
   </body>

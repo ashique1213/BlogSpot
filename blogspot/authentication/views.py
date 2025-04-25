@@ -9,12 +9,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from blog.models import Post, Comment
-
+from django.views import View
+from rest_framework_simplejwt.exceptions import TokenError
+from django.views.decorators.cache import never_cache
 
 User = get_user_model()
 
 class HomeView(APIView):
     permission_classes = []
+
     def get(self, request):
         return render(request, 'home.html')
 
@@ -44,6 +47,8 @@ class UserLoginView(APIView):
             password = serializer.validated_data['password']
             user = authenticate(email=email, password=password)
             if user:
+                if not user.is_active:
+                    return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     'refresh': str(refresh),
@@ -75,7 +80,6 @@ class AdminLoginView(APIView):
             return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-from django.views import View
 
 class AdminDashboardView(View):
     def get(self, request):
@@ -98,11 +102,8 @@ class BlogListView(APIView):
     def get(self, request):
         return render(request, 'blog-list.html')
 
-
-from rest_framework_simplejwt.exceptions import TokenError
-
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
     def post(self, request):
         try:
@@ -129,13 +130,11 @@ class UserManagementAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        """List all users"""
         users = User.objects.filter(is_staff=False)
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        """Create a new user"""
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -143,7 +142,6 @@ class UserManagementAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk=None):
-        """Update an existing user"""
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
@@ -156,7 +154,6 @@ class UserManagementAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None):
-        """Delete a user"""
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:

@@ -91,10 +91,13 @@ class PostManagementAPIView(APIView):
         except Post.DoesNotExist:
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 class CommentManagementAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not request.user.is_active:
+            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
         if request.user.is_staff:
             comments = Comment.objects.all()
         else:
@@ -103,6 +106,8 @@ class CommentManagementAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        if not request.user.is_active:
+            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
         serializer = CommentSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -125,29 +130,29 @@ class CommentManagementAPIView(APIView):
     def delete(self, request, pk=None):
         try:
             comment = Comment.objects.get(pk=pk)
-            if not (request.user.is_staff or comment.user == request.user):
+            if not (request.user.is_staff or (comment.user == request.user and request.user.is_active)):
                 return Response({'error': 'You cannot delete this comment'}, status=status.HTTP_403_FORBIDDEN)
-            comment.delete()
-            return Response({'message': 'Comment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         except Comment.DoesNotExist:
             return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        comment.delete()
+        return Response({'message': 'Comment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 class PostLikeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        if not request.user.is_active:
+            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
         try:
             post = Post.objects.get(pk=pk)
             user = request.user
             like, created = Like.objects.get_or_create(post=post, user=user)
 
             if not created:
-                # Like exists, so unlike (delete the like)
                 like.delete()
                 message = 'Post unliked successfully'
                 liked = False
             else:
-                # Like was created
                 message = 'Post liked successfully'
                 liked = True
 
@@ -158,3 +163,4 @@ class PostLikeAPIView(APIView):
             }, status=status.HTTP_200_OK)
         except Post.DoesNotExist:
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
