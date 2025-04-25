@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Post, Comment
+from .models import Post, Comment,Like
 from .serializers import PostSerializer, CommentSerializer
 from django.contrib.auth import get_user_model
 
@@ -57,12 +57,12 @@ class PostManagementAPIView(APIView):
         if pk:
             try:
                 post = Post.objects.get(pk=pk)
-                serializer = PostSerializer(post)
+                serializer = PostSerializer(post, context={'request': request})
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Post.DoesNotExist:
                 return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
         posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
+        serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -138,8 +138,23 @@ class PostLikeAPIView(APIView):
     def post(self, request, pk):
         try:
             post = Post.objects.get(pk=pk)
-            post.likes += 1
-            post.save()
-            return Response({'message': 'Post liked successfully', 'likes': post.likes}, status=status.HTTP_200_OK)
+            user = request.user
+            like, created = Like.objects.get_or_create(post=post, user=user)
+
+            if not created:
+                # Like exists, so unlike (delete the like)
+                like.delete()
+                message = 'Post unliked successfully'
+                liked = False
+            else:
+                # Like was created
+                message = 'Post liked successfully'
+                liked = True
+
+            return Response({
+                'message': message,
+                'liked': liked,
+                'likes': post.likes
+            }, status=status.HTTP_200_OK)
         except Post.DoesNotExist:
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)

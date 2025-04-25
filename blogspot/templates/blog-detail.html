@@ -47,7 +47,7 @@
           const res = await fetch(`/api/blogs/${postId}/`);
           if (res.ok) {
             const post = await res.json();
-            console.log('Post:', post.id, 'cover_image:', post.cover_image);
+            console.log('Post:', post.id, 'cover_image:', post.cover_image, 'liked:', post.liked);
             let imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
             if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('image/upload/')) {
               imageUrl = `https://res.cloudinary.com/your_cloud_name/${imageUrl}`;
@@ -72,9 +72,9 @@
                 <p>${post.content}</p>
               </div>
               <div class="mt-8 flex space-x-4">
-                <button onclick="likePost(${post.id})" class="flex items-center px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition space-x-2">
+                <button onclick="likePost(${post.id})" class="flex items-center px-4 py-2 ${post.liked ? 'bg-rose-600 hover:bg-rose-700' : 'bg-violet-600 hover:bg-violet-700'} text-white rounded-md transition space-x-2">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg>
-                  <span>Like</span>
+                  <span>${post.liked ? 'Unlike' : 'Like'}</span>
                 </button>
               </div>
             `;
@@ -134,11 +134,11 @@
 
           if (res.ok) {
             const data = await res.json();
-            alert('Post liked!');
+            alert(data.message);
             fetchPost();
           } else {
             const errorData = await res.json();
-            alert('Error: ' + (errorData.error || 'Failed to like post'));
+            alert('Error: ' + (errorData.error || 'Failed to like/unlike post'));
           }
         } catch (error) {
           console.error('Like post error:', error);
