@@ -17,8 +17,6 @@ venv/
 *.mo
 db.sqlite3
 media/
-staticfiles/
-static/
 local_settings.py
 
 # VS Code
