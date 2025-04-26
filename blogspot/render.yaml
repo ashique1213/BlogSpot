@@ -2,7 +2,7 @@ services:
   - type: web
     name: BlogSpot
     env: python
-    buildCommand: ""
+    buildCommand: " pip install -r requirements.txt"
     startCommand: gunicorn --chdir blogspot blogspot.wsgi
     preDeployCommand: |
       python manage.py migrate
