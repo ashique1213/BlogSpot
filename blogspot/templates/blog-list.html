@@ -22,10 +22,46 @@
       <div id="post-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Posts will be populated dynamically -->
       </div>
+      <!-- Page Loader -->
+      <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+      <!-- Toast Container -->
+      <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
     </main>
     <script src="{% static 'js/auth.js' %}"></script>
-
     <script>
+      // Toast Notification Function
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform ${
+          type === 'success' ? 'bg-violet-700 text-white' : 'bg-red-500 text-white'
+        }`;
+        toast.innerText = message;
+        
+        const container = document.getElementById('toast-container');
+        container.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => toast.classList.add('opacity-100', 'translate-y-0'), 100);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Loader Functions
+      function showPageLoader() {
+        document.getElementById('page-loader').classList.remove('hidden');
+      }
+
+      function hidePageLoader() {
+        document.getElementById('page-loader').classList.add('hidden');
+      }
+
       function updateAuthLink() {
         const authLink = document.getElementById('auth-link');
         const accessToken = localStorage.getItem('access_token');
@@ -38,7 +74,10 @@
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
-              updateAuthLink();
+              showToast('Logged out successfully!', 'success');
+              setTimeout(() => {
+                updateAuthLink();
+              }, 3000); // Delay UI update to match toast duration
             });
           };
         } else {
@@ -49,6 +88,7 @@
       }
 
       async function fetchPosts() {
+        showPageLoader();
         try {
           const res = await fetch('/api/blogs/');
           if (res.ok) {
@@ -79,11 +119,15 @@
             });
           } else {
             console.error('Error fetching posts: HTTP', res.status);
+            showToast('Failed to load posts', 'error');
             document.getElementById('post-list').innerHTML = '<p class="text-red-500">Failed to load posts</p>';
           }
         } catch (error) {
           console.error('Fetch error:', error.message);
+          showToast('Error loading posts: ' + error.message, 'error');
           document.getElementById('post-list').innerHTML = '<p class="text-red-500">Error loading posts: ' + error.message + '</p>';
+        } finally {
+          hidePageLoader();
         }
       }
 
@@ -97,6 +141,5 @@
         fetchPosts();
       });
     </script>
-    
   </body>
 </html>

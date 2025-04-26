@@ -40,6 +40,12 @@
             Start Reading
           </a>
         </div>
+        <!-- Toast Container -->
+        <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
+        <!-- Page Loader -->
+        <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </section>
     </main>
     <footer class="bg-white/80 py-6 mt-12">
@@ -48,41 +54,5 @@
       </div>
     </footer>
     <script src="{% static 'js/auth.js' %}"></script>
-    
-    <script>
-      function updateAuthLink() {
-        const authLink = document.getElementById('auth-link');
-        const startReadingLink = document.getElementById('start-reading');
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
-
-        if (accessToken && refreshToken) {
-          authLink.textContent = 'Logout';
-          authLink.href = '#';
-          authLink.onclick = (event) => {
-            event.preventDefault();
-            logout().then(success => {
-              console.log('Logout status:', success);
-              updateAuthLink();
-            });
-          };
-          startReadingLink.href = "{% url 'blog_list' %}";
-        } else {
-          authLink.textContent = 'Login';
-          authLink.href = "{% url 'user_login' %}";
-          authLink.onclick = null;
-          startReadingLink.href = "{% url 'user_login' %}";
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
-        updateAuthLink();
-        window.addEventListener('storage', (event) => {
-          if (event.key === 'logout-event') {
-            updateAuthLink();
-          }
-        });
-      });
-    </script>
   </body>
 </html>

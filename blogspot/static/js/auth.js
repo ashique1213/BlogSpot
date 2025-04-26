@@ -1,5 +1,37 @@
 const API_URL = '/api/auth/';
 
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform ${
+        type === 'success' ? 'bg-violet-700 text-white' : 'bg-red-500 text-white'
+    }`;
+    toast.innerText = message;
+    
+    const container = document.getElementById('toast-container');
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('opacity-100', 'translate-y-0'), 100);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Button Loader Functions
+function showButtonLoader(buttonId) {
+    document.getElementById(`${buttonId}-loader`).classList.remove('hidden');
+    document.getElementById(buttonId).setAttribute('disabled', 'true');
+}
+
+function hideButtonLoader(buttonId) {
+    document.getElementById(`${buttonId}-loader`).classList.add('hidden');
+    document.getElementById(buttonId).removeAttribute('disabled');
+}
+
 async function register() {
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
@@ -7,6 +39,7 @@ async function register() {
 
     console.log('Register payload:', { username: name, email, password });
 
+    showButtonLoader('register-button');
     try {
         const response = await fetch(API_URL + 'register/', {
             method: 'POST',
@@ -20,14 +53,18 @@ async function register() {
         console.log('Register response:', data);
 
         if (response.ok) {
-            alert('Registration successful! Please login.');
-            window.location.href = '/login/';
+            showToast('Registration successful! Please login.');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 3000);
         } else {
-            alert('Registration failed: ' + JSON.stringify(data));
+            showToast('Registration failed: ' + JSON.stringify(data), 'error');
         }
     } catch (error) {
         console.error('Register error:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideButtonLoader('register-button');
     }
 }
 
@@ -37,6 +74,7 @@ async function login() {
 
     console.log('Login payload:', { email, password });
 
+    showButtonLoader('login-button');
     try {
         const response = await fetch(API_URL + 'login/', {
             method: 'POST',
@@ -52,14 +90,18 @@ async function login() {
         if (response.ok) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-            alert('login successfull');
-            window.location.href = '/blogs/';
+            showToast('Login successful!');
+            setTimeout(() => {
+                window.location.href = '/blogs/';
+            }, 3000);
         } else {
-            alert('Login failed: ' + JSON.stringify(data));
+            showToast(data.error,'error');
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideButtonLoader('login-button');
     }
 }
 
@@ -69,6 +111,7 @@ async function adminLogin() {
 
     console.log('Admin login payload:', { email, password });
 
+    showButtonLoader('admin-login-button');
     try {
         const response = await fetch(API_URL + 'admin-login/', {
             method: 'POST',
@@ -84,14 +127,18 @@ async function adminLogin() {
         if (response.ok) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-            alert('login successfull');
-            window.location.href = '/admin-dashboard/';
+            showToast('Login successful!');
+            setTimeout(() => {
+                window.location.href = '/admin-dashboard/';
+            }, 3000);
         } else {
-            alert('Admin login failed: ' + JSON.stringify(data));
+            showToast('Admin login failed: ' + JSON.stringify(data), 'error');
         }
     } catch (error) {
         console.error('Admin login error:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideButtonLoader('admin-login-button');
     }
 }
 
@@ -111,9 +158,11 @@ async function logout() {
     localStorage.removeItem('logout-event');
 
     if (!refreshToken) {
-        alert('Logged out successfully!');
-        window.location.href = '/';
-        isLoggingOut = false;
+        showToast('Logged out successfully!', 'success');
+        setTimeout(() => {
+            window.location.href = '/';
+            isLoggingOut = false;
+        }, 3000);
         return true;
     }
 
@@ -133,21 +182,27 @@ async function logout() {
         console.log('Logout response:', data, 'Status:', response.status);
 
         if (response.ok || response.status === 204 || (data.message === 'Already logged out')) {
-            alert(data.message || 'Logged out successfully!');
-            window.location.href = '/';
-            isLoggingOut = false;
+            showToast(data.message || 'Logged out successfully!', 'success');
+            setTimeout(() => {
+                window.location.href = '/';
+                isLoggingOut = false;
+            }, 3000);
             return true;
         } else {
-            alert('Logout failed: ' + (data.error || 'Unknown error'));
-            window.location.href = '/';
-            isLoggingOut = false;
+            showToast('Logout failed: ' + (data.error || 'Unknown error'), 'error');
+            setTimeout(() => {
+                window.location.href = '/';
+                isLoggingOut = false;
+            }, 3000);
             return false;
         }
     } catch (error) {
         console.error('Logout error:', error);
-        alert('Error during logout: ' + error.message + '. You have been logged out.');
-        window.location.href = '/';
-        isLoggingOut = false;
+        showToast('Error during logout: ' + error.message + '. You have been logged out.', 'error');
+        setTimeout(() => {
+            window.location.href = '/';
+            isLoggingOut = false;
+        }, 3000);
         return false;
     }
 }
@@ -178,8 +233,10 @@ async function refreshToken() {
                 if (!userData.is_active) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
-                    alert('Your account is blocked.');
-                    window.location.href = '/login/';
+                    showToast('Your account is blocked.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/login/';
+                    }, 3000);
                     return false;
                 }
             }
@@ -188,16 +245,20 @@ async function refreshToken() {
             console.error('Token refresh failed:', data);
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            window.location.href = '/login/';
+            showToast('Session expired. Please log in again.', 'error');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 3000);
             return false;
         }
     } catch (error) {
         console.error('Refresh error:', error);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login/';
+        showToast('Error: ' + error.message, 'error');
+        setTimeout(() => {
+            window.location.href = '/login/';
+        }, 3000);
         return false;
     }
 }
-
-

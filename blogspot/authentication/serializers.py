@@ -1,6 +1,8 @@
 # authentication/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+import re
+
 
 User = get_user_model()
 
@@ -36,4 +38,17 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
 
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("Email is required.")
+        if " " in value:
+            raise serializers.ValidationError("Email should not contain spaces.")
+        return value
+
+    def validate_password(self, value):
+        if not value:
+            raise serializers.ValidationError("Password is required.")
+        if ' ' in value:
+            raise serializers.ValidationError("Password should not contain spaces.")
+        return value
 

@@ -36,16 +36,57 @@
           <div class="text-gray-500">Comments</div>
         </div>
       </div>
+
+      <!-- Page Loader -->
+      <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <!-- Toast Container -->
+      <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
     </main>
     <script src="{% static 'js/auth.js' %}"></script>
     <script>
+      // Toast Notification Function
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform ${
+          type === 'success' ? 'bg-violet-700 text-white' : 'bg-red-500 text-white'
+        }`;
+        toast.innerText = message;
+        
+        const container = document.getElementById('toast-container');
+        container.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => toast.classList.add('opacity-100', 'translate-y-0'), 100);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Loader Functions
+      function showPageLoader() {
+        document.getElementById('page-loader').classList.remove('hidden');
+      }
+
+      function hidePageLoader() {
+        document.getElementById('page-loader').classList.add('hidden');
+      }
+
       async function loadDashboardData() {
         let token = localStorage.getItem('access_token');
         if (!token) {
+          showToast('Please log in', 'error');
           window.location.href = '/admin-login/';
           return;
         }
 
+        showPageLoader();
         try {
           let res = await fetch('/api/admin/dashboard-data/', {
             headers: {
@@ -56,6 +97,7 @@
           if (res.status === 401) {
             const refreshed = await refreshToken();
             if (!refreshed) {
+              showToast('Session expired, please log in again', 'error');
               window.location.href = '/admin-login/';
               return;
             }
@@ -74,11 +116,15 @@
             document.getElementById('total-comments').textContent = data.total_comments;
           } else {
             console.error('Error loading dashboard:', res.status);
+            showToast('Failed to load dashboard data', 'error');
             window.location.href = '/admin-login/';
           }
         } catch (error) {
           console.error('Fetch error:', error);
+          showToast('Error: ' + error.message, 'error');
           window.location.href = '/admin-login/';
+        } finally {
+          hidePageLoader();
         }
       }
 

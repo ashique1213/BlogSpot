@@ -17,14 +17,29 @@
         </div>
         <div>
           <label class="block mb-2 text-sm font-medium text-gray-700">Password</label>
-          <input type="password" id="password"  class="w-full px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-200"/>
+          <input type="password" id="password" class="w-full px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-200"/>
         </div>
-        <button onclick="adminLogin()" class="w-full py-2 bg-violet-700 text-white font-semibold rounded-lg hover:bg-violet-800 transition">Login</button>
+        <div class="relative">
+          <button id="admin-login-button" class="w-full py-2 bg-violet-700 text-white font-semibold rounded-lg hover:bg-violet-800 transition">Login</button>
+          <div id="admin-login-button-loader" class="hidden absolute inset-0 flex items-center justify-center bg-violet-700/80 rounded-lg">
+            <div class="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
         <div class="text-center text-gray-500 mt-4">
           Not an admin? <a href="{% url 'user_login' %}" class="text-violet-700 hover:underline">User Login</a>
         </div>
       </div>
+      <!-- Toast Container -->
+      <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
     </div>
     <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const adminLoginButton = document.getElementById('admin-login-button');
+        adminLoginButton.addEventListener('click', () => {
+          adminLogin();
+        });
+      });
+    </script>
   </body>
 </html>

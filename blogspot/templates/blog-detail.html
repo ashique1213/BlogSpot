@@ -21,19 +21,67 @@
       <article id="post-content" class="bg-white/90 rounded-xl shadow-xl p-8 mb-10">
         <!-- Post content will be populated dynamically -->
       </article>
-      <section class="bg-white/80 rounded-xl shadow p-6">
+      <section class="bg-white/80 rounded-xl shadow p-6 relative">
         <h3 class="font-bold text-lg mb-4 text-violet-700">Comments</h3>
         <form id="comment-form" class="mb-6 flex flex-col space-y-3">
           <textarea id="comment-content" class="w-full px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-200" rows="3" placeholder="Add your comment..."></textarea>
-          <button type="submit" class="self-end px-6 py-2 bg-violet-700 text-white rounded-lg hover:bg-violet-800 font-semibold">Submit</button>
+          <div class="flex items-center space-x-3 self-end">
+            <button type="submit" class="px-6 py-2 bg-violet-700 text-white rounded-lg hover:bg-violet-800 font-semibold">Submit</button>
+            <div id="comment-form-loader" class="hidden w-6 h-6 border-3 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         </form>
         <div id="comment-list" class="space-y-4">
           <!-- Comments will be populated dynamically -->
         </div>
+        <!-- Page Loader -->
+        <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <!-- Toast Container -->
+        <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
       </section>
     </main>
     <script src="{% static 'js/auth.js' %}"></script>
     <script>
+      // Toast Notification Function
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform ${
+          type === 'success' ? 'bg-violet-700 text-white' : 'bg-red-500 text-white'
+        }`;
+        toast.innerText = message;
+        
+        const container = document.getElementById('toast-container');
+        container.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => toast.classList.add('opacity-100', 'translate-y-0'), 100);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Loader Functions
+      function showPageLoader() {
+        document.getElementById('page-loader').classList.remove('hidden');
+      }
+
+      function hidePageLoader() {
+        document.getElementById('page-loader').classList.add('hidden');
+      }
+
+      function showActionLoader(actionType) {
+        document.getElementById(`${actionType}-loader`).classList.remove('hidden');
+      }
+
+      function hideActionLoader(actionType) {
+        document.getElementById(`${actionType}-loader`).classList.add('hidden');
+      }
+
       function updateAuthLink() {
         const authLink = document.getElementById('auth-link');
         const accessToken = localStorage.getItem('access_token');
@@ -46,6 +94,7 @@
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
+              showToast('Logged out successfully!', 'success');
               updateAuthLink();
             });
           };
@@ -65,6 +114,7 @@
           return;
         }
 
+        showPageLoader();
         try {
           const res = await fetch(`/api/blogs/${postId}/`);
           if (res.ok) {
@@ -94,10 +144,15 @@
                 <p class="break-words">${post.content}</p>
               </div>
               <div class="mt-8 flex space-x-4">
-                <button onclick="likePost(${post.id})" class="flex items-center px-4 py-2 ${post.liked ? 'bg-rose-600 hover:bg-rose-700' : 'bg-violet-600 hover:bg-violet-700'} text-white rounded-md transition space-x-2">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg>
-                  <span>${post.liked ? 'Unlike' : 'Like'}</span>
-                </button>
+                <div class="relative">
+                  <button id="like-button" onclick="likePost(${post.id})" class="flex items-center px-4 py-2 ${post.liked ? 'bg-rose-600 hover:bg-rose-700' : 'bg-violet-600 hover:bg-violet-700'} text-white rounded-md transition space-x-2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15a7 7 0 0014 0c0-5-7-13-7-13S5 10 5 15z" /></svg>
+                    <span>${post.liked ? 'Unlike' : 'Like'}</span>
+                  </button>
+                  <div id="like-button-loader" class="hidden absolute inset-0 flex items-center justify-center bg-violet-600/80 rounded-md">
+                    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </div>
               </div>
             `;
 
@@ -120,17 +175,22 @@
         } catch (error) {
           console.error('Fetch error:', error.message);
           document.getElementById('post-content').innerHTML = '<p class="text-red-500">Error loading post: ' + error.message + '</p>';
+        } finally {
+          hidePageLoader();
         }
       }
 
       async function likePost(id) {
         const token = localStorage.getItem('access_token');
         if (!token) {
-          alert('Please log in to like this post');
-          window.location.href = '/login/';
+          showToast('Please log in to like this post', 'error');
+          setTimeout(() => {
+            window.location.href = '/login/';
+          }, 3000);
           return;
         }
 
+        showActionLoader('like-button');
         try {
           let res = await fetch(`/api/blogs/${id}/like/`, {
             method: 'POST',
@@ -141,15 +201,17 @@
 
           if (res.status === 403) {
             const errorData = await res.json();
-            alert(errorData.error || 'Failed to like/unlike post');
+            showToast(errorData.error || 'Failed to like/unlike post', 'error');
             return;
           }
 
           if (res.status === 401) {
             const refreshed = await refreshToken();
             if (!refreshed) {
-              alert('Session expired. Please log in again.');
-              window.location.href = '/login/';
+              showToast('Session expired. Please log in again.', 'error');
+              setTimeout(() => {
+                window.location.href = '/login/';
+              }, 3000);
               return;
             }
             const newToken = localStorage.getItem('access_token');
@@ -163,15 +225,17 @@
 
           if (res.ok) {
             const data = await res.json();
-            alert(data.message);
+            showToast(data.message);
             fetchPost();
           } else {
             const errorData = await res.json();
-            alert(errorData.error || 'Failed to like/unlike post');
+            showToast(errorData.error || 'Failed to like/unlike post', 'error');
           }
         } catch (error) {
           console.error('Like post error:', error);
-          alert('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
+        } finally {
+          hideActionLoader('like-button');
         }
       }
 
@@ -179,14 +243,16 @@
         event.preventDefault();
         const token = localStorage.getItem('access_token');
         if (!token) {
-          alert('Please log in to comment');
-          window.location.href = '/login/';
+          showToast('Please log in to comment', 'error');
+          setTimeout(() => {
+            window.location.href = '/login/';
+          }, 3000);
           return;
         }
 
         const content = document.getElementById('comment-content').value.trim();
         if (!content) {
-          alert('Comment cannot be empty');
+          showToast('Comment cannot be empty', 'error');
           return;
         }
 
@@ -196,6 +262,7 @@
           content
         };
 
+        showActionLoader('comment-form');
         try {
           let res = await fetch('/api/comments/', {
             method: 'POST',
@@ -208,15 +275,17 @@
 
           if (res.status === 403) {
             const errorData = await res.json();
-            alert(errorData.error || 'Failed to submit comment');
+            showToast(errorData.error || 'Failed to submit comment', 'error');
             return;
           }
 
           if (res.status === 401) {
             const refreshed = await refreshToken();
             if (!refreshed) {
-              alert('Session expired. Please log in again.');
-              window.location.href = '/login/';
+              showToast('Session expired. Please log in again.', 'error');
+              setTimeout(() => {
+                window.location.href = '/login/';
+              }, 3000);
               return;
             }
             const newToken = localStorage.getItem('access_token');
@@ -231,16 +300,18 @@
           }
 
           if (res.ok) {
-            alert('Comment submitted! It will appear after admin approval.');
+            showToast('Comment submitted! It will appear after admin approval.');
             document.getElementById('comment-form').reset();
             fetchPost();
           } else {
             const errorData = await res.json();
-            alert(errorData.error || 'Failed to submit comment');
+            showToast(errorData.error || 'Failed to submit comment', 'error');
           }
         } catch (error) {
           console.error('Submit comment error:', error);
-          alert('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
+        } finally {
+          hideActionLoader('comment-form');
         }
       }
 
