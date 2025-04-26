@@ -93,6 +93,12 @@ class AdminLoginView(APIView):
                     'is_staff': user.is_staff
                 })
             return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if 'email' in serializer.errors:
+            return Response({'error': serializer.errors['email'][0]}, status=status.HTTP_400_BAD_REQUEST)
+        if 'password' in serializer.errors:
+            return Response({'error': serializer.errors['password'][0]}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

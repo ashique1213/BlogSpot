@@ -58,7 +58,7 @@ async function register() {
                 window.location.href = '/login/';
             }, 3000);
         } else {
-            showToast('Registration failed: ' + JSON.stringify(data), 'error');
+            showToast(data.error, 'error');
         }
     } catch (error) {
         console.error('Register error:', error);
@@ -132,7 +132,7 @@ async function adminLogin() {
                 window.location.href = '/admin-dashboard/';
             }, 3000);
         } else {
-            showToast('Admin login failed: ' + JSON.stringify(data), 'error');
+            showToast(data.error, 'error');
         }
     } catch (error) {
         console.error('Admin login error:', error);
