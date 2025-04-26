@@ -3,7 +3,7 @@ services:
     name: BlogSpot
     env: python
     buildCommand: ""
-    startCommand: gunicorn --chdir bratmensclothing bratmensclothing.wsgi
+    startCommand: gunicorn --chdir blogspot blogspot.wsgi
     preDeployCommand: |
       python manage.py migrate
       python manage.py collectstatic --noinput
