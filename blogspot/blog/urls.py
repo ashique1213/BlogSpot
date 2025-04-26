@@ -8,7 +8,7 @@ urlpatterns = [
     path('blogs/<int:pk>/', views.BlogDetailView.as_view(), name='blog_detail'),
     path('admin-posts/', views.AdminPostsView.as_view(), name='admin_posts'),
     path('admin-comments/', views.AdminCommentsView.as_view(), name='admin_comments'),
-    # API URLs
+    # API 
     path('api/blogs/', views.PostListAPIView.as_view(), name='api_blog_list'),
     path('api/blogs/<int:pk>/', views.PostDetailAPIView.as_view(), name='api_blog_detail'),
     path('api/admin/posts/', views.PostManagementAPIView.as_view(), name='post_management'),

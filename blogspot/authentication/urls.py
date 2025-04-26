@@ -13,7 +13,7 @@ urlpatterns = [
     path('api/admin/users/<int:pk>/', views.UserManagementAPIView.as_view(), name='user_management_detail'),
 
     
-    # Template + API Endpoints
+    # Template
     path('', views.HomeView.as_view(), name='home'),
     path('register/', views.UserRegisterView.as_view(), name='user_register'),
     path('login/', views.UserLoginView.as_view(), name='user_login'),
