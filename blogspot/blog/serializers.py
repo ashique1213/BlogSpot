@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Comment, Like
 from django.contrib.auth import get_user_model
-import cloudinary
+import cloudinary # type: ignore
 
 User = get_user_model()
 
@@ -43,8 +43,14 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_liked(self, obj):
         request = self.context.get('request')
+        print('Request:', request)  # Debug
         if request and request.user.is_authenticated:
-            return Like.objects.filter(post=obj, user=request.user).exists()
+            print('User ID:', request.user.id)  # Should be 2
+            print('Post ID:', obj.id)  # Should be 1
+            liked = Like.objects.filter(post=obj, user=request.user).exists()
+            print('Liked exists:', liked)  # Should be True
+            return liked
+        print('No request or user not authenticated')
         return False
 
     def get_likes(self, obj):

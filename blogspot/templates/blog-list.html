@@ -89,17 +89,36 @@
 
       async function fetchPosts() {
         showPageLoader();
+        const token = localStorage.getItem('access_token');
         try {
-          const res = await fetch('/api/blogs/');
+          let headers = {};
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          let res = await fetch('/api/blogs/', { headers });
+
+          if (res.status === 401 && token) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              console.log('Session expired, clearing tokens');
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+            } else {
+              const newToken = localStorage.getItem('access_token');
+              headers['Authorization'] = `Bearer ${newToken}`;
+              res = await fetch('/api/blogs/', { headers });
+            }
+          }
+
           if (res.ok) {
             const posts = await res.json();
             const postList = document.getElementById('post-list');
             postList.innerHTML = '';
             posts.forEach(post => {
-              console.log('Post:', post.id, 'cover_image:', post.cover_image);
-              const imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
+              console.log('Post:', post.id, 'cover_image:', post.cover_image_url, 'liked:', post.liked);
+              const imageUrl = post.cover_image_url || 'https://via.placeholder.com/800x400';
               postList.innerHTML += `
-                <a href="/blogs/${post.id}/" class="block bg-white/90 rounded-xl shadow-md hover:shadow-xl transition overflow-hidden">
+                <a href="/blogs/${post.id}/" class="post-link block bg-white/90 rounded-xl shadow-md hover:shadow-xl transition overflow-hidden" data-post-id="${post.id}">
                   <img src="${imageUrl}" alt="Post Cover" class="w-full h-40 object-cover" onerror="this.src='https://via.placeholder.com/800x400'; console.error('Failed to load image:', '${imageUrl}')" />
                   <div class="p-5">
                     <h3 class="font-bold text-lg text-violet-700 mb-2 break-words line-clamp-1">${post.title}</h3>
@@ -116,6 +135,20 @@
                   </div>
                 </a>
               `;
+            });
+
+            // Add click event listeners to post links
+            document.querySelectorAll('.post-link').forEach(link => {
+              link.addEventListener('click', (event) => {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                  event.preventDefault();
+                  showToast('Please log in to view post details', 'error');
+                  setTimeout(() => {
+                    window.location.href = '/login/';
+                  }, 2000);
+                }
+              });
             });
           } else {
             console.error('Error fetching posts: HTTP', res.status);

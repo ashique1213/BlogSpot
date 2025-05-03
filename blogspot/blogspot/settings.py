@@ -14,7 +14,7 @@ from pathlib import Path
 import os 
 from dotenv import load_dotenv # type: ignore
 from datetime import timedelta
-import dj_database_url
+import dj_database_url # type: ignore
 
 
 load_dotenv()

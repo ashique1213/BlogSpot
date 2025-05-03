@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Post, Comment,Like
+from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer
 from django.contrib.auth import get_user_model
 
@@ -37,14 +37,14 @@ class PostListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PostDetailAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         try:
             post = Post.objects.get(pk=pk, status='published')
             post.reads += 1
             post.save()
-            serializer = PostSerializer(post)
+            serializer = PostSerializer(post, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Post.DoesNotExist:
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)

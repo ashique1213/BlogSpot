@@ -1,7 +1,7 @@
 # blog/models.py
 from django.db import models
 from django.contrib.auth import get_user_model
-from cloudinary.models import CloudinaryField
+from cloudinary.models import CloudinaryField # type: ignore
 
 User = get_user_model()
 

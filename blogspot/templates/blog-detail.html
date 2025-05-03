@@ -95,7 +95,6 @@
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
-              //showToast('Logged out successfully!', 'success');
               updateAuthLink();
             });
           };
@@ -107,6 +106,15 @@
       }
 
       async function fetchPost() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          showToast('Please log in to view post details', 'error');
+          setTimeout(() => {
+            window.location.href = '/login/';
+          }, 3000);
+          return;
+        }
+
         const pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
         const postId = pathParts.pop();
         if (!postId || isNaN(postId) || postId <= 0) {
@@ -117,11 +125,33 @@
 
         showPageLoader();
         try {
-          const res = await fetch(`/api/blogs/${postId}/`);
+          let res = await fetch(`/api/blogs/${postId}/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (res.status === 401) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              showToast('Session expired. Please log in again.', 'error');
+              setTimeout(() => {
+                window.location.href = '/login/';
+              }, 3000);
+              return;
+            }
+            const newToken = localStorage.getItem('access_token');
+            res = await fetch(`/api/blogs/${postId}/`, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`
+              }
+            });
+          }
+
           if (res.ok) {
             const post = await res.json();
-            console.log('Post:', post.id, 'cover_image:', post.cover_image, 'liked:', post.liked);
-            let imageUrl = post.cover_image || 'https://via.placeholder.com/800x400';
+            console.log('Post:', post.id, 'cover_image:', post.cover_image_url, 'liked:', post.liked);
+            let imageUrl = post.cover_image_url || 'https://via.placeholder.com/800x400';
             if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('image/upload/')) {
               imageUrl = `https://res.cloudinary.com/your_cloud_name/${imageUrl}`;
             }
