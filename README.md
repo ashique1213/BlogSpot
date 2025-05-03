@@ -11,10 +11,7 @@ BlogSpot is a Django-based CMS designed for seamless blog post creation, managem
 - [Features](#features)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [Contributing](#contributing)
 - [License](#license)
-- [Contact](#contact)
 
 ## Features
 
