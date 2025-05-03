@@ -74,7 +74,7 @@
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
-              showToast('Logged out successfully!', 'success');
+              //showToast('Logged out successfully!', 'success');
               setTimeout(() => {
                 updateAuthLink();
               }, 3000); // Delay UI update to match toast duration

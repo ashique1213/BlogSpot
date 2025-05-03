@@ -31,13 +31,96 @@
       </div>
       <!-- Toast Container -->
       <div id="toast-container" class="fixed top-4 right-4 space-y-2"></div>
+      <!-- Page Loader -->
+      <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
+      </div>
     </div>
-    <script src="{% static 'js/auth.js' %}"></script>
     <script>
+      // Toast Notification Function
+      function showToast(message, type = 'success') {
+          const toast = document.createElement('div');
+          toast.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform ${
+              type === 'success' ? 'bg-violet-700 text-white' : 'bg-red-500 text-white'
+          }`;
+          toast.innerText = message;
+          
+          const container = document.getElementById('toast-container');
+          container.appendChild(toast);
+          
+          // Animate in
+          setTimeout(() => toast.classList.add('opacity-100', 'translate-y-0'), 100);
+          
+          // Auto-remove after 3 seconds
+          setTimeout(() => {
+              toast.classList.remove('opacity-100', 'translate-y-0');
+              toast.classList.add('opacity-0', 'translate-y-2');
+              setTimeout(() => toast.remove(), 300);
+          }, 3000);
+      }
+
+      // Button Loader Functions (unused but kept for consistency)
+      function showButtonLoader(buttonId) {
+          document.getElementById(`${buttonId}-loader`).classList.remove('hidden');
+          document.getElementById(buttonId).setAttribute('disabled', 'true');
+      }
+
+      function hideButtonLoader(buttonId) {
+          document.getElementById(`${buttonId}-loader`).classList.add('hidden');
+          document.getElementById(buttonId).removeAttribute('disabled');
+      }
+
+      // Page Loader Functions
+      function showPageLoader() {
+          document.getElementById('page-loader').classList.remove('hidden');
+      }
+
+      function hidePageLoader() {
+          document.getElementById('page-loader').classList.add('hidden');
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         const adminLoginButton = document.getElementById('admin-login-button');
-        adminLoginButton.addEventListener('click', () => {
-          adminLogin();
+        adminLoginButton.addEventListener('click', async () => {
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+
+          console.log('Admin login payload:', { email, password });
+
+          let isSuccess = false;
+          showPageLoader();
+          try {
+            const response = await fetch('/api/auth/admin-login/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+            console.log('Admin login response:', data);
+
+            if (response.ok) {
+              isSuccess = true;
+              localStorage.setItem('access_token', data.access);
+              localStorage.setItem('refresh_token', data.refresh);
+              showToast('Login successful!');
+              setTimeout(() => {
+                hidePageLoader();
+                window.location.href = '/admin-dashboard/';
+              }, 3000);
+            } else {
+              showToast(data.error, 'error');
+            }
+          } catch (error) {
+            console.error('Admin login error:', error);
+            showToast('Error: ' + error.message, 'error');
+          } finally {
+            if (!isSuccess) {
+              hidePageLoader();
+            }
+          }
         });
       });
     </script>
