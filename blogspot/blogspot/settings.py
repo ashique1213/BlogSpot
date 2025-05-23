@@ -124,21 +124,21 @@ WSGI_APPLICATION = 'blogspot.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME'), 
-        'USER': os.getenv('DATABASE_USER'), 
-        'PASSWORD': os.getenv('DATABASE_PASSWORD'), 
-        'HOST': os.getenv('DATABASE_HOST'), 
-        'PORT': os.getenv('DATABASE_PORT'),
-    }
-}
-
-
 # DATABASES = {
-#     'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DATABASE_NAME'), 
+#         'USER': os.getenv('DATABASE_USER'), 
+#         'PASSWORD': os.getenv('DATABASE_PASSWORD'), 
+#         'HOST': os.getenv('DATABASE_HOST'), 
+#         'PORT': os.getenv('DATABASE_PORT'),
+#     }
 # }
+
+
+DATABASES = {
+    'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+}
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
