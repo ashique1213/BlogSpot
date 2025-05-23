@@ -22,6 +22,12 @@
       <div id="post-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Posts will be populated dynamically -->
       </div>
+      <!-- Pagination -->
+      <div id="pagination" class="flex justify-center items-center mt-8 space-x-2">
+        <button id="prev-page" class="px-4 py-2 bg-violet-700 text-white rounded-lg disabled:opacity-50" disabled> Previous</button>
+        <div id="page-numbers" class="flex space-x-1"></div>
+        <button id="next-page" class="px-4 py-2 bg-violet-700 text-white rounded-lg disabled:opacity-50" disabled>Next</button>
+      </div>
       <!-- Page Loader -->
       <div id="page-loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
         <div class="w-12 h-12 border-4 border-violet-700 border-t-transparent rounded-full animate-spin"></div>
@@ -62,6 +68,7 @@
         document.getElementById('page-loader').classList.add('hidden');
       }
 
+      // Update Authentication Link
       function updateAuthLink() {
         const authLink = document.getElementById('auth-link');
         const accessToken = localStorage.getItem('access_token');
@@ -74,7 +81,6 @@
             event.preventDefault();
             logout().then(success => {
               console.log('Logout status:', success);
-              //showToast('Logged out successfully!', 'success');
               setTimeout(() => {
                 updateAuthLink();
               }, 3000); // Delay UI update to match toast duration
@@ -87,7 +93,8 @@
         }
       }
 
-      async function fetchPosts() {
+      // Fetch Posts with Pagination
+      async function fetchPosts(page = 1, limit = 6) {
         showPageLoader();
         const token = localStorage.getItem('access_token');
         try {
@@ -95,7 +102,7 @@
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
-          let res = await fetch('/api/blogs/', { headers });
+          let res = await fetch(`/api/blogs/?page=${page}&limit=${limit}`, { headers });
 
           if (res.status === 401 && token) {
             const refreshed = await refreshToken();
@@ -103,15 +110,20 @@
               console.log('Session expired, clearing tokens');
               localStorage.removeItem('access_token');
               localStorage.removeItem('refresh_token');
+              updateAuthLink();
             } else {
               const newToken = localStorage.getItem('access_token');
               headers['Authorization'] = `Bearer ${newToken}`;
-              res = await fetch('/api/blogs/', { headers });
+              res = await fetch(`/api/blogs/?page=${page}&limit=${limit}`, { headers });
             }
           }
 
           if (res.ok) {
-            const posts = await res.json();
+            const data = await res.json();
+            const posts = data.results || data; // Adjust based on API response structure
+            const totalPages = data.total_pages || Math.ceil(data.count / limit) || 1; // Adjust based on API response
+            const currentPage = data.current_page || page;
+
             const postList = document.getElementById('post-list');
             postList.innerHTML = '';
             posts.forEach(post => {
@@ -136,6 +148,9 @@
                 </a>
               `;
             });
+
+            // Update Pagination UI
+            updatePagination(currentPage, totalPages);
 
             // Add click event listeners to post links
             document.querySelectorAll('.post-link').forEach(link => {
@@ -162,6 +177,45 @@
         } finally {
           hidePageLoader();
         }
+      }
+
+      // Update Pagination UI
+      function updatePagination(currentPage, totalPages) {
+        const pageNumbers = document.getElementById('page-numbers');
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+
+        // Update Previous/Next buttons
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === totalPages;
+
+        // Generate page number buttons (show up to 5 pages)
+        pageNumbers.innerHTML = '';
+        const maxPagesToShow = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+        if (endPage - startPage + 1 < maxPagesToShow) {
+          startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          const pageButton = document.createElement('button');
+          pageButton.className = `px-4 py-2 rounded-lg ${
+            i === currentPage ? 'bg-violet-700 text-white' : 'bg-white text-violet-700'
+          }`;
+          pageButton.innerText = i;
+          pageButton.addEventListener('click', () => fetchPosts(i));
+          pageNumbers.appendChild(pageButton);
+        }
+
+        // Add event listeners for Previous/Next buttons
+        prevButton.onclick = () => {
+          if (currentPage > 1) fetchPosts(currentPage - 1);
+        };
+        nextButton.onclick = () => {
+          if (currentPage < totalPages) fetchPosts(currentPage + 1);
+        };
       }
 
       document.addEventListener('DOMContentLoaded', () => {
