@@ -33,7 +33,7 @@ class PostListAPIView(APIView):
 
     def get(self, request):
         posts = Post.objects.filter(status='published')
-        serializer = PostSerializer(posts, many=True)
+        serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PostDetailAPIView(APIView):

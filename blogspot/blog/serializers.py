@@ -30,11 +30,20 @@ class PostSerializer(serializers.ModelSerializer):
     cover_image_url = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
+    content = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = ['id', 'title', 'content', 'cover_image', 'cover_image_url', 'author', 'publish_date', 'status', 'reads', 'likes', 'comments', 'liked']
         read_only_fields = ['author', 'publish_date', 'reads']
+
+    def get_content(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            max_length = 100
+            content = obj.content
+            return content[:max_length] + ('...' if len(content) > max_length else '')
+        return obj.content
 
     def get_cover_image_url(self, obj):
         if obj.cover_image:
