@@ -30,14 +30,14 @@ class PostSerializer(serializers.ModelSerializer):
     cover_image_url = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
-    content = serializers.SerializerMethodField()
+    display_content = serializers.SerializerMethodField()  # Renamed to avoid confusion
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'cover_image', 'cover_image_url', 'author', 'publish_date', 'status', 'reads', 'likes', 'comments', 'liked']
+        fields = ['id', 'title', 'content', 'cover_image', 'cover_image_url', 'author', 'publish_date', 'status', 'reads', 'likes', 'comments', 'liked', 'display_content']
         read_only_fields = ['author', 'publish_date', 'reads']
 
-    def get_content(self, obj):
+    def get_display_content(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             max_length = 100
