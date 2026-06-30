@@ -17,9 +17,10 @@ function App() {
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
-            <Route path="post/:slug" element={<PostDetail />} />
+            <Route path="post/:id" element={<PostDetail />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="write" element={<Write />} />
+            <Route path="edit/:id" element={<Write />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

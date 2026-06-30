@@ -10,7 +10,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (access: string, refresh: string, is_staff: boolean) => void;
+  login: (access: string, refresh: string, is_staff: boolean, username: string, email: string) => void;
   logout: () => void;
 }
 
@@ -29,7 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If we want real user data, we should fetch it or decode JWT
         // In this app, maybe we just store is_staff in localStorage too
         const is_staff = localStorage.getItem('isStaff') === 'true';
-        setUser({ id: 0, email: '', username: 'User', is_staff });
+        const username = localStorage.getItem('username') || 'User';
+        const email = localStorage.getItem('email') || '';
+        setUser({ id: 0, email, username, is_staff });
       }
     } catch (error) {
       console.error(error);
@@ -49,17 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  const login = (access: string, refresh: string, is_staff: boolean) => {
+  const login = (access: string, refresh: string, is_staff: boolean, username: string, email: string) => {
     localStorage.setItem('accessToken', access);
     localStorage.setItem('refreshToken', refresh);
     localStorage.setItem('isStaff', String(is_staff));
-    setUser({ id: 0, email: '', username: 'User', is_staff });
+    localStorage.setItem('username', username);
+    localStorage.setItem('email', email);
+    setUser({ id: 0, email, username, is_staff });
   };
 
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('isStaff');
+    localStorage.removeItem('username');
+    localStorage.removeItem('email');
     setUser(null);
   };
 

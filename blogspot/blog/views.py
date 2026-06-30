@@ -15,9 +15,17 @@ class PostViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             permission_classes = [AllowAny]
+        elif self.action in ['create']:
+            permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsAdminUser]
+            permission_classes = [IsAuthenticated] # We will check object level permissions below
         return [permission() for permission in permission_classes]
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if self.action in ['update', 'partial_update', 'destroy']:
+            if not (request.user.is_staff or obj.author == request.user):
+                self.permission_denied(request, message="You do not have permission to modify this post.")
 
     def get_queryset(self):
         queryset = Post.objects.select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))

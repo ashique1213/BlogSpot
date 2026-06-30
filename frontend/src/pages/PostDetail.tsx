@@ -27,76 +27,71 @@ interface PostDetail {
   author: {
     username: string;
   };
-  created_at: string;
+  publish_date: string;
   reads: number;
-  likes_count: number;
-  is_liked: boolean;
+  likes: number;
+  liked: boolean;
   comments: Comment[];
+  cover_image_url?: string | null;
 }
 
 export function PostDetail() {
-  const { slug } = useParams<{ slug: string }>();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [commentContent, setCommentContent] = useState('');
 
-  // We find the post by ID or Slug. Since our ViewSet uses ID by default, we might need a custom lookup field for slug.
-  // Wait, if the ViewSet uses ID, we need to fetch all posts and find the one with the slug, or modify the ViewSet to use slug.
-  // Assuming we need to fetch all and filter for now (or Django handles it if we changed lookup_field).
-  // Actually, ViewSet defaults to pk. We will just fetch all posts and find the slug to be safe without changing backend again, 
-  // or better, if the backend uses ID, we should change the router link to use ID.
-  // Let's assume the router link in Home was changed to use ID for safety, wait, I used slug in Home.tsx.
-  // I will just use the `/api/posts/` list and find it, or modify Home to use ID.
-  
-  // Let's modify the query to just fetch all and find the one. (Not ideal for large DB, but works for now).
-  const { data: posts, isLoading } = useQuery<PostDetail[]>({
-    queryKey: ['posts'],
+  const { data: displayPost, isLoading } = useQuery<PostDetail>({
+    queryKey: ['post', id],
     queryFn: async () => {
-      const response = await api.get('/api/posts/');
+      const response = await api.get(`/api/posts/${id}/`);
       return response.data;
     },
+    enabled: !!id,
   });
-
-  const post = posts?.find(p => p.slug === slug || p.id.toString() === slug);
-  const postId = post?.id;
-
-  // Now fetch the actual detail to trigger the read count and get comments
-  const { data: detailedPost } = useQuery<PostDetail>({
-    queryKey: ['post', postId],
-    queryFn: async () => {
-      const response = await api.get(`/api/posts/${postId}/`);
-      return response.data;
-    },
-    enabled: !!postId,
-  });
-
-  const displayPost = detailedPost || post;
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post(`/api/posts/${postId}/like/`);
+      const response = await api.post(`/api/posts/${id}/like/`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post', postId] });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['post', id] });
+      const previousPost = queryClient.getQueryData<PostDetail>(['post', id]);
+      
+      if (previousPost) {
+        queryClient.setQueryData<PostDetail>(['post', id], {
+          ...previousPost,
+          liked: !previousPost.liked,
+          likes: previousPost.liked ? previousPost.likes - 1 : previousPost.likes + 1,
+        });
+      }
+      
+      return { previousPost };
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to like post');
+    onError: (_err, _variables, context) => {
+      if (context?.previousPost) {
+        queryClient.setQueryData(['post', id], context.previousPost);
+      }
+      toast.error('Failed to like post');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['post', id] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
     }
   });
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
       const response = await api.post(`/api/comments/`, {
-        post: postId,
+        post: id,
         content
       });
       return response.data;
     },
     onSuccess: () => {
       setCommentContent('');
-      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+      queryClient.invalidateQueries({ queryKey: ['post', id] });
       toast.success('Comment added');
     },
     onError: (error: any) => {
@@ -118,6 +113,11 @@ export function PostDetail() {
       animate={{ opacity: 1 }}
       className="max-w-3xl mx-auto py-10"
     >
+      {displayPost.cover_image_url && (
+        <div className="w-full h-[400px] mb-10 rounded-2xl overflow-hidden shadow-lg border border-border/50">
+          <img src={displayPost.cover_image_url} alt={displayPost.title} className="w-full h-full object-cover" />
+        </div>
+      )}
       <header className="mb-10 space-y-6">
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
           {displayPost.title}
@@ -130,7 +130,7 @@ export function PostDetail() {
           <div className="flex flex-col">
             <span className="font-semibold text-foreground">{displayPost.author.username}</span>
             <span className="text-sm">
-              {new Date(displayPost.created_at).toLocaleDateString('en-US', {
+              {new Date(displayPost.publish_date || Date.now()).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric'
               })} · {displayPost.reads} reads
             </span>
@@ -141,11 +141,11 @@ export function PostDetail() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className={`gap-2 ${displayPost.is_liked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'}`}
+            className={`gap-2 ${displayPost.liked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'}`}
             onClick={() => user ? likeMutation.mutate() : toast.error('Please login to like')}
           >
-            <Heart className={`h-5 w-5 ${displayPost.is_liked ? 'fill-current' : ''}`} />
-            {displayPost.likes_count}
+            <Heart className={`h-5 w-5 ${displayPost.liked ? 'fill-current' : ''}`} />
+            {displayPost.likes}
           </Button>
           <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}>
             <MessageSquare className="h-5 w-5" />

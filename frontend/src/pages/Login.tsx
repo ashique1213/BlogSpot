@@ -22,8 +22,8 @@ export function Login() {
 
     try {
       const response = await api.post('/api/auth/login/', { email, password });
-      const { access, refresh, is_staff } = response.data;
-      login(access, refresh, is_staff);
+      const { access, refresh, is_staff, username, email: resEmail } = response.data;
+      login(access, refresh, is_staff, username, resEmail);
       toast.success('Logged in successfully');
       navigate('/');
     } catch (error: any) {
