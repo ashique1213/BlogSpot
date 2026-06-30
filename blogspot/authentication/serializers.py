@@ -32,8 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Password is required.")
         if ' ' in value:
             raise serializers.ValidationError("Password should not contain spaces.")
-        if 't' in value.lower():
-            raise serializers.ValidationError("Password cannot contain the letter 't' or 'T'.")
         if not re.search(r'[A-Za-z]', value):
             raise serializers.ValidationError("Password must contain at least one letter.")
         if not re.search(r'\d', value):
