@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Heart, Clock, Trash2, Edit } from 'lucide-react';
@@ -17,6 +17,9 @@ interface Post {
   reads: number;
   likes_count: number;
   status: string;
+  author: {
+    username: string;
+  };
 }
 
 export function Dashboard() {

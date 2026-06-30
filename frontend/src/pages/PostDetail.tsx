@@ -4,7 +4,7 @@ import { api } from '@/lib/axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageSquare, Clock } from 'lucide-react';
+import { Heart, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';

@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { PenSquare, LogOut, User } from 'lucide-react';
+import { PenSquare, LogOut } from 'lucide-react';
 import { api } from '@/lib/axios';
 import toast, { Toaster } from 'react-hot-toast';
 
