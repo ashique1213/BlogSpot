@@ -5,6 +5,7 @@ import { PenSquare } from 'lucide-react';
 import { api } from '@/lib/axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Footer } from './Footer';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,11 +114,24 @@ export function Navbar() {
 
 export function RootLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans antialiased selection:bg-primary selection:text-primary-foreground">
-      <Navbar />
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8">
-        <Outlet />
-      </main>
+    <div className="min-h-screen flex flex-col bg-background font-sans antialiased selection:bg-primary selection:text-primary-foreground relative z-0">
+      {/* Decorative Background Watermark */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none select-none z-0 flex items-center justify-center opacity-5 dark:opacity-10">
+        <div className="absolute w-[150vw] h-[150vh] -rotate-12 flex flex-wrap gap-x-8 gap-y-4 justify-center items-center content-center">
+          {Array.from({ length: 200 }).map((_, i) => (
+            <span key={i} className="text-4xl md:text-6xl font-black tracking-[0.2em] text-foreground/50 whitespace-nowrap">
+              BLOGSPOT
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8">
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
       <Toaster position="bottom-center" />
     </div>
   );

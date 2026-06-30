@@ -226,17 +226,6 @@ export function Home() {
           </div>
         </div>
         
-        {/* Footer links placeholder */}
-        <div className="pt-6 border-t border-border/50 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-foreground">Help</a>
-          <a href="#" className="hover:text-foreground">Status</a>
-          <a href="#" className="hover:text-foreground">About</a>
-          <a href="#" className="hover:text-foreground">Careers</a>
-          <a href="#" className="hover:text-foreground">Blog</a>
-          <a href="#" className="hover:text-foreground">Privacy</a>
-          <a href="#" className="hover:text-foreground">Terms</a>
-          <a href="#" className="hover:text-foreground">Text to speech</a>
-        </div>
       </aside>
     </div>
   );
