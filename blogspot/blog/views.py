@@ -1,170 +1,93 @@
-from django.shortcuts import render
-from django.views import View
-from rest_framework.views import APIView
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.decorators import action
+from django.db.models import Count, Exists, OuterRef
 from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Exists, OuterRef
 
 User = get_user_model()
 
-# Template Views
-class BlogListView(View):
-    def get(self, request):
-        return render(request, 'blog-list.html')
-
-class BlogDetailView(View):
-    def get(self, request, pk=None):
-        return render(request, 'blog-detail.html')
-
-class AdminPostsView(View):
-    def get(self, request):
-        return render(request, 'admin-posts.html')
-
-class AdminCommentsView(View):
-    def get(self, request):
-        return render(request, 'admin-comments.html')
-
-# API Views
-class PostListAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        posts = Post.objects.filter(status='published').select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))
-        if request.user.is_authenticated:
-            posts = posts.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=request.user)))
-        serializer = PostSerializer(posts, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-class PostDetailAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, pk):
-        try:
-            post = Post.objects.get(pk=pk, status='published')
-            post.reads += 1
-            post.save()
-            serializer = PostSerializer(post, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Post.DoesNotExist:
-            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-
-class PostManagementAPIView(APIView):
-    permission_classes = [IsAdminUser]
-
-    def get(self, request, pk=None):
-        if pk:
-            try:
-                post = Post.objects.get(pk=pk)
-                serializer = PostSerializer(post, context={'request': request})
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            except Post.DoesNotExist:
-                return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-        posts = Post.objects.all().select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))
-        if request.user.is_authenticated:
-            posts = posts.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=request.user)))
-        serializer = PostSerializer(posts, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = PostSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk):
-        try:
-            post = Post.objects.get(pk=pk)
-            serializer = PostSerializer(post, data=request.data, context={'request': request}, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Post.DoesNotExist:
-            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    def delete(self, request, pk):
-        try:
-            post = Post.objects.get(pk=pk)
-            post.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Post.DoesNotExist:
-            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
-class CommentManagementAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        if not request.user.is_active:
-            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
-        if request.user.is_staff:
-            comments = Comment.objects.select_related('user', 'post').all()
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
         else:
-            comments = Comment.objects.select_related('user', 'post').filter(user=request.user)
-        serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            permission_classes = [IsAdminUser]
+        return [permission() for permission in permission_classes]
 
-    def post(self, request):
+    def get_queryset(self):
+        queryset = Post.objects.select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))
+        
+        # Non-admins only see published posts
+        if self.action in ['list', 'retrieve'] and not (self.request.user and self.request.user.is_staff):
+            queryset = queryset.filter(status='published')
+            
+        if self.request.user and self.request.user.is_authenticated:
+            queryset = queryset.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=self.request.user)))
+            
+        return queryset
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Increment read count for non-admins reading published posts
+        if instance.status == 'published' and not request.user.is_staff:
+            instance.reads += 1
+            instance.save(update_fields=['reads'])
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def like(self, request, pk=None):
         if not request.user.is_active:
             return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
-        serializer = CommentSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Comment created successfully', 'data': serializer.data}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        post = self.get_object()
+        like, created = Like.objects.get_or_create(post=post, user=request.user)
 
-    def put(self, request, pk=None):
+        if not created:
+            like.delete()
+            message = 'Post unliked successfully'
+            liked = False
+        else:
+            message = 'Post liked successfully'
+            liked = True
+            
+        # Re-fetch post to get updated likes_count
+        updated_post = Post.objects.annotate(likes_count=Count('like')).get(pk=post.pk)
+
+        return Response({
+            'message': message,
+            'liked': liked,
+            'likes': updated_post.likes_count
+        }, status=status.HTTP_200_OK)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Comment.objects.select_related('user', 'post')
+        if self.request.user.is_staff:
+            return queryset.all()
+        return queryset.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_active:
+            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
         if not request.user.is_staff:
             return Response({'error': 'Only admins can update comment status'}, status=status.HTTP_403_FORBIDDEN)
-        try:
-            comment = Comment.objects.get(pk=pk)
-        except Comment.DoesNotExist:
-            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = CommentSerializer(comment, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Comment updated successfully', 'data': serializer.data}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
 
-    def delete(self, request, pk=None):
-        try:
-            comment = Comment.objects.get(pk=pk)
-            if not (request.user.is_staff or (comment.user == request.user and request.user.is_active)):
-                return Response({'error': 'You cannot delete this comment'}, status=status.HTTP_403_FORBIDDEN)
-        except Comment.DoesNotExist:
-            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
-        comment.delete()
-        return Response({'message': 'Comment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-
-class PostLikeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-        if not request.user.is_active:
-            return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
-        try:
-            post = Post.objects.get(pk=pk)
-            user = request.user
-            like, created = Like.objects.get_or_create(post=post, user=user)
-
-            if not created:
-                like.delete()
-                message = 'Post unliked successfully'
-                liked = False
-            else:
-                message = 'Post liked successfully'
-                liked = True
-
-            return Response({
-                'message': message,
-                'liked': liked,
-                'likes': post.likes
-            }, status=status.HTTP_200_OK)
-        except Post.DoesNotExist:
-            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not (request.user.is_staff or (instance.user == request.user and request.user.is_active)):
+            return Response({'error': 'You cannot delete this comment'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
