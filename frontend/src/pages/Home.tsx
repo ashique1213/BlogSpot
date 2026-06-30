@@ -117,12 +117,16 @@ export function Home() {
                 )}
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-3">
-                    <Avatar className="h-8 w-8 border border-border/50">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${post.author.username}`} />
-                      <AvatarFallback>{post.author.username.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    <Link to={`/profile/${post.author.username}`}>
+                      <Avatar className="h-8 w-8 border border-border/50 hover:ring-2 hover:ring-primary/50 transition-all">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${post.author.username}`} />
+                        <AvatarFallback>{post.author.username.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Link>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">{post.author.username}</span>
+                      <Link to={`/profile/${post.author.username}`} className="hover:underline">
+                        <span className="text-sm font-medium">{post.author.username}</span>
+                      </Link>
                       <span className="text-xs text-muted-foreground">
                         {new Date(post.publish_date || Date.now()).toLocaleDateString('en-US', {
                           month: 'short', day: 'numeric', year: 'numeric'
@@ -187,10 +191,14 @@ export function Home() {
                 </span>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${post.author.username}`} />
-                    </Avatar>
-                    <span className="text-xs font-medium text-foreground">{post.author.username}</span>
+                    <Link to={`/profile/${post.author.username}`}>
+                      <Avatar className="h-5 w-5 hover:ring-1 hover:ring-primary/50 transition-all">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${post.author.username}`} />
+                      </Avatar>
+                    </Link>
+                    <Link to={`/profile/${post.author.username}`} className="hover:underline">
+                      <span className="text-xs font-medium text-foreground">{post.author.username}</span>
+                    </Link>
                   </div>
                   <Link to={`/post/${post.id}`}>
                     <h3 className="font-bold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">

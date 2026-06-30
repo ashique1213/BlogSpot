@@ -34,6 +34,12 @@ class PostViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve'] and not (self.request.user and self.request.user.is_staff):
             queryset = queryset.filter(status='published')
             
+        author_username = self.request.query_params.get('author')
+        if author_username:
+            if author_username.lower() == 'blogspot editor':
+                author_username = 'admin'
+            queryset = queryset.filter(author__username__iexact=author_username)
+            
         if self.request.user and self.request.user.is_authenticated:
             queryset = queryset.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=self.request.user)))
             

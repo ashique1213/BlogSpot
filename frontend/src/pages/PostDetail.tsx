@@ -4,7 +4,7 @@ import { api } from '@/lib/axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageSquare } from 'lucide-react';
+import { Heart, MessageSquare, Clock } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -122,18 +122,27 @@ export function PostDetail() {
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
           {displayPost.title}
         </h1>
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <Avatar className="h-12 w-12 border">
-            <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${displayPost.author.username}`} />
-            <AvatarFallback>{displayPost.author.username.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
+        {/* Author Info */}
+        <div className="flex items-center gap-4 mb-8 pb-8 border-b border-border/50">
+          <Link to={`/profile/${displayPost.author.username}`}>
+            <Avatar className="h-12 w-12 border-2 border-primary/20 hover:ring-2 hover:ring-primary/50 transition-all">
+              <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${displayPost.author.username}`} />
+              <AvatarFallback>{displayPost.author.username.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex flex-col">
-            <span className="font-semibold text-foreground">{displayPost.author.username}</span>
-            <span className="text-sm">
-              {new Date(displayPost.publish_date || Date.now()).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric'
-              })} · {displayPost.reads} reads
-            </span>
+            <Link to={`/profile/${displayPost.author.username}`} className="hover:underline">
+              <span className="text-lg font-bold text-foreground">{displayPost.author.username}</span>
+            </Link>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{new Date(displayPost.publish_date || Date.now()).toLocaleDateString('en-US', {
+                month: 'long', day: 'numeric', year: 'numeric'
+              })}</span>
+              <span>·</span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {displayPost.reads} reads
+              </span>
+            </div>
           </div>
         </div>
         

@@ -7,6 +7,7 @@ import { Register } from './pages/Register';
 import { PostDetail } from './pages/PostDetail';
 import { Dashboard } from './pages/Dashboard';
 import { Write } from './pages/Write';
+import { Profile } from './pages/Profile';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="post/:id" element={<PostDetail />} />
+            <Route path="profile/:username" element={<Profile />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="write" element={<Write />} />
             <Route path="edit/:id" element={<Write />} />

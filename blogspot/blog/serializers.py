@@ -10,6 +10,12 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username']
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if ret['username'].lower() == 'admin':
+            ret['username'] = 'BlogSpot Editor'
+        return ret
+
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     post_title = serializers.CharField(source='post.title', read_only=True)

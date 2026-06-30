@@ -57,7 +57,7 @@ class LoginView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'is_staff': user.is_staff,
-                'username': user.username,
+                'username': 'BlogSpot Editor' if user.username.lower() == 'admin' else user.username,
                 'email': user.email
             })
 
