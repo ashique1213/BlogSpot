@@ -23,6 +23,8 @@ class Post(models.Model):
 
     @property
     def likes(self):
+        if hasattr(self, 'likes_count'):
+            return self.likes_count
         return self.like_set.count()
 
     class Meta:

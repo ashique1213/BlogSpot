@@ -51,6 +51,8 @@ class PostSerializer(serializers.ModelSerializer):
         return None
 
     def get_liked(self, obj):
+        if hasattr(obj, 'is_liked'):
+            return obj.is_liked
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             liked = Like.objects.filter(post=obj, user=request.user).exists()
@@ -58,6 +60,8 @@ class PostSerializer(serializers.ModelSerializer):
         return False
 
     def get_likes(self, obj):
+        if hasattr(obj, 'likes_count'):
+            return obj.likes_count
         return obj.likes
 
     def create(self, validated_data):

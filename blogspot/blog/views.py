@@ -7,6 +7,7 @@ from rest_framework import status
 from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer
 from django.contrib.auth import get_user_model
+from django.db.models import Count, Exists, OuterRef
 
 User = get_user_model()
 
@@ -32,7 +33,9 @@ class PostListAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        posts = Post.objects.filter(status='published')
+        posts = Post.objects.filter(status='published').select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))
+        if request.user.is_authenticated:
+            posts = posts.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=request.user)))
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -60,7 +63,9 @@ class PostManagementAPIView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Post.DoesNotExist:
                 return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
-        posts = Post.objects.all()
+        posts = Post.objects.all().select_related('author').prefetch_related('comments', 'comments__user').annotate(likes_count=Count('like'))
+        if request.user.is_authenticated:
+            posts = posts.annotate(is_liked=Exists(Like.objects.filter(post=OuterRef('pk'), user=request.user)))
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -98,9 +103,9 @@ class CommentManagementAPIView(APIView):
         if not request.user.is_active:
             return Response({'error': 'Your account is blocked'}, status=status.HTTP_403_FORBIDDEN)
         if request.user.is_staff:
-            comments = Comment.objects.all()
+            comments = Comment.objects.select_related('user', 'post').all()
         else:
-            comments = Comment.objects.filter(user=request.user)
+            comments = Comment.objects.select_related('user', 'post').filter(user=request.user)
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
